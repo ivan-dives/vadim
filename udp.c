@@ -120,7 +120,6 @@ static int server_main(void)
 			}
 			buf = realloc(buf, len);
 			assert_perror(buf == NULL);
-			/* memset(&src_addr, 0, sizeof(struct sockaddr)); */
 			addrlen = sizeof(struct sockaddr);
 			bytes = recvfrom(fd, buf, len, 0, &src_addr, &addrlen);
 			assert_perror(bytes == -1);
