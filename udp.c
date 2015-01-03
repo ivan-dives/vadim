@@ -40,11 +40,10 @@ static long next_number(void)
 
 	if (last_base == max_base || last_base == 0) {
 		last_base = 1;
-		goto ret;
+	} else {
+		last_base++;
 	}
-	last_base++;
 
-ret:
 	return pow(last_base, 2);
 }
 
@@ -144,7 +143,7 @@ static int server_main(void)
 			if (buf == NULL) {
 				error_at_line(1, errno, __FILE__, __LINE__, "%s: OOM", __func__);
 			}
-			memset(&src_addr, 0, sizeof(struct sockaddr));
+			/* memset(&src_addr, 0, sizeof(struct sockaddr)); */
 			addrlen = sizeof(struct sockaddr);
 			bytes = recvfrom(fd, buf, len, 0, &src_addr, &addrlen);
 			if (bytes == -1) {
