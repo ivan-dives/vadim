@@ -2,6 +2,7 @@
 
 /* compile me with 'make udp CFLAGS='-lm -g3' */
 
+#define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -50,41 +51,29 @@ static long next_number(void)
 static int client_main(void)
 {
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (fd == -1) {
-		error_at_line(1, errno, __FILE__, __LINE__, "%s: socket", __func__);
-	}
+	assert_perror(fd == -1);
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons(UDP_PORT);
 	sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
 	bytes = sendto(fd, CMD_MOTD, sizeof(CMD_MOTD), 0, (const struct sockaddr *)&sa, sizeof(struct sockaddr_in));
-	if (bytes == -1) {
-		error_at_line(1, errno, __FILE__, __LINE__, "%s: sendto", __func__);
-	}
+	assert_perror(bytes == -1);
 	printf("client sent '%s'\n", CMD_MOTD);
 
 	fds.fd = fd;
 	fds.events = 0 | POLLIN;
 	for (;;) {
 		ret = poll(&fds, 1, INT_MAX);
-		if (ret == -1) {
-			error_at_line(1, errno, __FILE__, __LINE__, "%s: poll", __func__);
-		}
+		assert_perror(ret == -1);
 		ret = ioctl(fd, FIONREAD, &len);
-		if (ret == -1) {
-			error_at_line(1, errno, __FILE__, __LINE__, "%s: ioctl/FIONREAD", __func__);
-		}
+		assert_perror(ret == -1);
 		if (len == 0) {
 			continue;
 		}
 		buf = realloc(buf, len);
-		if (buf == NULL) {
-			error_at_line(1, errno, __FILE__, __LINE__, "%s: OOM", __func__);
-		}
+		assert_perror(buf == NULL);
 		bytes = recv(fd, buf, len, 0);
-		if (bytes == -1) {
-			error_at_line(1, errno, __FILE__, __LINE__, "%s: recv", __func__);
-		}
+		assert_perror(bytes == -1);
 		assert(bytes == len);
 		assert(buf[bytes - 1] == '\0');
 		printf("client received '%s'\n", buf);
@@ -92,9 +81,7 @@ static int client_main(void)
 		ret = asprintf(&str, "%s %ld", CMD_SQRT, next_number());
 		assert(str != NULL); /* OOM */
 		bytes = sendto(fd, str, ret + 1, 0, (const struct sockaddr *)&sa, sizeof(struct sockaddr_in));
-		if (bytes == -1) {
-			error_at_line(1, errno, __FILE__, __LINE__, "%s: sendto", __func__);
-		}
+		assert_perror(bytes == -1);
 		printf("client sent '%s'\n", str);
 		free(str);
 
@@ -109,55 +96,41 @@ static int client_main(void)
 static int server_main(void)
 {
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (fd == -1) {
-		error_at_line(1, errno, __FILE__, __LINE__, "%s: socket", __func__);
-	}
+	assert_perror(fd == -1);
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons(UDP_PORT);
 	sa.sin_addr.s_addr = htonl(INADDR_ANY);
 	ret = bind(fd, (const struct sockaddr *)&sa, sizeof(sa));
-	if (ret == -1) {
-		error_at_line(1, errno, __FILE__, __LINE__, "%s: bind", __func__);
-	}
+	assert_perror(ret == -1);
 	printf("server ready\n");
 
 	fds.fd = fd;
 	fds.events = 0 | POLLIN;
 	for (;;) {
 		ret = poll(&fds, 1, INT_MAX);
-		if (ret == -1) {
-			error_at_line(1, errno, __FILE__, __LINE__, "%s: poll", __func__);
-		}
+		assert_perror(ret == -1);
 		for (;;) {
 			socklen_t addrlen;
 			struct sockaddr src_addr;
 
 			ret = ioctl(fd, FIONREAD, &len);
-			if (ret == -1) {
-				error_at_line(1, errno, __FILE__, __LINE__, "%s: ioctl/FIONREAD", __func__);
-			}
+			assert_perror(ret == -1);
 			if (len == 0) {
 				break;
 			}
 			buf = realloc(buf, len);
-			if (buf == NULL) {
-				error_at_line(1, errno, __FILE__, __LINE__, "%s: OOM", __func__);
-			}
+			assert_perror(buf == NULL);
 			/* memset(&src_addr, 0, sizeof(struct sockaddr)); */
 			addrlen = sizeof(struct sockaddr);
 			bytes = recvfrom(fd, buf, len, 0, &src_addr, &addrlen);
-			if (bytes == -1) {
-				error_at_line(1, errno, __FILE__, __LINE__, "%s: recvfrom", __func__);
-			}
+			assert_perror(bytes == -1);
 			assert(bytes == len);
 			assert(buf[bytes - 1] == '\0');
 			printf("server received '%s'\n", buf);
 
 			if (!strncmp(buf, CMD_MOTD, strlen(CMD_MOTD))) {
 				bytes = sendto(fd, SERVER_MOTD, sizeof(SERVER_MOTD), 0, &src_addr, addrlen);
-				if (bytes == -1) {
-					error_at_line(1, errno, __FILE__, __LINE__, "%s: sendto", __func__);
-				}
+				assert_perror(bytes == -1);
 				printf("server sent '%s'\n", SERVER_MOTD);
 				continue;
 			}
@@ -175,9 +148,7 @@ static int server_main(void)
 				assert(str != NULL); /* OOM */
 
 				bytes = sendto(fd, str, ret + 1, 0, &src_addr, addrlen);
-				if (bytes == -1) {
-					error_at_line(1, errno, __FILE__, __LINE__, "%s: sendto", __func__);
-				}
+				assert_perror(bytes == -1);
 				printf("server sent '%s'\n", str);
 				free(str);
 				continue;
@@ -191,7 +162,7 @@ static int server_main(void)
 
 static void usage(const char *filename)
 {
-	error(1, 0, "usage: %s client|server", filename);
+	error(0, 0, "usage: %s client|server", filename);
 }
 
 int main(int argc, char *argv[])
