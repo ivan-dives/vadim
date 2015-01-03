@@ -163,7 +163,7 @@ static int server_main(void)
 				continue;
 			}
 			/* example message: "sqrt 16" */
-				if (!strncmp(buf, CMD_SQRT, strlen(CMD_SQRT))) {
+			if (!strncmp(buf, CMD_SQRT, strlen(CMD_SQRT))) {
 				char *s;
 				double d;
 				long l;
